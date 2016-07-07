@@ -1,0 +1,7 @@
+{
+	"start": 12345,
+	"end":   12355,
+	"fbUser": "VALID_FB_USER_HERE",
+	"fbPassword": "VALID_FB_PASS_HERE",
+	"isProxyOpen": true
+}
