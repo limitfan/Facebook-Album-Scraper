@@ -5,7 +5,7 @@ Simple python script to download album photos between a certain Facebook ID rang
 
     1, Install necessary python packages
     2, Edit configs.json to fill it with valid parameters
-    3, run python fbdl.py
+    3, Run python fbdl.py
 
 License
 -------
