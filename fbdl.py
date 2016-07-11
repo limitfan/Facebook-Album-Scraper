@@ -25,7 +25,7 @@ fbMain = "https://m.facebook.com"
 start = 12345
 end   = 12445
 
-storage = "photos/"
+storage = "FacebookPhotos"
 
 redirect = "home.php?_rdr"
 page404 = "Page Not Found"
@@ -54,15 +54,15 @@ thumbnail_queue = Queue()
 img_queue = Queue()
 
 #Thread groups for image crawling speed control
-num_albums_fetch  = 2
+num_albums_fetch  = 4
 
-num_thumbnail_fetch = 3
+num_thumbnail_fetch = 5
 
-num_fullsize_fetch = 3
+num_fullsize_fetch = 5
 
-num_img_download = 40
+num_img_download = 50
 
-browserList = [RoboBrowser(user_agent=UA) for i in range(num_albums_fetch+num_thumbnail_fetch+num_fullsize_fetch)]
+browserList = [RoboBrowser(user_agent=UA, timeout=defaultTimeout, tries=ntries) for i in range(num_albums_fetch+num_thumbnail_fetch+num_fullsize_fetch)]
 
 #dlBrowser = RoboBrowser(user_agent=UA)
 fbUser = ""
@@ -91,7 +91,7 @@ def getCurrentIndex4ID(currentID):
 
 def createDir(currentID):
 
-    dirPath = storage+"{}".format(currentID)
+    dirPath = storage+"[{}_{}]/{}".format(start, end, currentID)
     if not os.path.exists(dirPath):
         os.makedirs(dirPath)
 
@@ -137,7 +137,6 @@ def accessAlbumPage(i, q):
         s = currentUrl.rfind('/')
         e = currentUrl.find('?')
         id2username[x] = currentUrl[s+1:e]
-        createDir(x)
         albumsUrl = "https://m.facebook.com/{}/photos/albums/?owner_id={}".format(id2username[x], x)
         albums_queue.put(albumsUrl)
 
@@ -216,13 +215,16 @@ def downloadImage(i, q):
             print '[Thread%02d]Image Fetch: Looking for the next image url with image queue size %s\n' % (i, img_queue.qsize())
             imgUrl = q.get()
 
+
             print "===============image url to be downloaded:"+imgUrl
             #print '%s: Downloading:' % i, url
             thumbnailPage = fullSize2thumbnail[imgUrl]
             albumsPage = thumbnailPage2albumPage[thumbnailPage]
             currentID = albumsPage2id[albumsPage]
 
-            saveLinktoFile(imgUrl, "./photos/{}/{:04d}.jpg".format(currentID, getCurrentIndex4ID(currentID)))
+            createDir(currentID)
+
+            saveLinktoFile(imgUrl, "./FacebookPhotos[{}_{}]/{}/{:04d}.jpg".format(start, end, currentID, getCurrentIndex4ID(currentID)))
             q.task_done()
         except Exception:
             pass   
