@@ -20,6 +20,7 @@ import json
 UA= "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5 Build/MOB30M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/44.0.2403.119 Mobile Safari/537.36"
 fbMain = "https://m.facebook.com"
 
+
 #Todo: the possibility of many albums exceeding the limit of single mobile page in the album's overview page with a "See All Albums" button
 
 start = 12345
@@ -54,13 +55,12 @@ thumbnail_queue = Queue()
 img_queue = Queue()
 
 #Thread groups for image crawling speed control
-num_albums_fetch  = 4
+num_albums_fetch  = 1
 
-num_thumbnail_fetch = 5
+num_thumbnail_fetch = 1
 
-num_fullsize_fetch = 5
-
-num_img_download = 50
+num_fullsize_fetch = 2
+num_img_download = 20
 
 browserList = [RoboBrowser(user_agent=UA, timeout=defaultTimeout, tries=ntries) for i in range(num_albums_fetch+num_thumbnail_fetch+num_fullsize_fetch)]
 
@@ -119,7 +119,12 @@ def accessAlbumPage(i, q):
         print '[Thread:%02d]Album Fetch: Looking for the next id: %s' % (i, x)
         #print "start to access album page with id:{}".format(x)
         currentUserMain = fbMain+"/{}".format(x)
-        browserList[i].open(currentUserMain)
+        try:
+            browserList[i].open(currentUserMain)
+        except Exception as ex:
+            print "browser open album homepage exception"
+            time.sleep(2)
+            continue
         currentUrl = browserList[i].url
       
         # photo_link = browser.get_link('Photos')
@@ -144,13 +149,20 @@ def accessAlbumPage(i, q):
         print "username:"+currentUrl[s+1:e]
         print "albumsUrl:"+albumsUrl 
 
+        time.sleep(3)
+
         #print browser.parsed
 
 def accessThumbnail(i, q):
     while True:
         albumsUrl = q.get()
         print '[Thread:%02d]Thumbnail Fetch: Looking for the next album url: %s' % (i, albumsUrl)
-        browserList[num_albums_fetch+i].open(albumsUrl)
+        try:
+            browserList[num_albums_fetch+i].open(albumsUrl)
+        except Exception as ex:
+            print "browser open album exception"
+            time.sleep(2)
+            continue
         print browserList[num_albums_fetch+i].select('a')
         for singleAlbum in browserList[num_albums_fetch+i].select('a'):
             #print "singleAlbum href:"+singleAlbum['href']
@@ -159,7 +171,12 @@ def accessThumbnail(i, q):
                 currentIndex = 0
                 while True:
                     print "access single album with currentIndex:{}".format(currentIndex)
-                    browserList[num_albums_fetch+i].open(fbMain+singleAlbum['href']+"?start_index={}".format(currentIndex))
+                    try:
+                        browserList[num_albums_fetch+i].open(fbMain+singleAlbum['href']+"?start_index={}".format(currentIndex))
+                    except Exception as ex:
+                        print "browser open thumbnail exception"
+                        time.sleep(2)
+                        continue
 
                     for thumbnail in browserList[num_albums_fetch+i].select('a'):
                         if "photo.php" in thumbnail['href']:
@@ -179,8 +196,14 @@ def accessThumbnail(i, q):
 def accessFullsize(i, q):
     while True:
         thumbnailUrl = q.get()
-        print '[Thread:%02d]Fullsize Fetch: Looking for the next thumbnail url: %s' % (i, thumbnailUrl)        
-        browserList[num_albums_fetch+num_thumbnail_fetch+i].open(fbMain+thumbnailUrl)
+        print '[Thread:%02d]Fullsize Fetch: Looking for the next thumbnail url: %s' % (i, thumbnailUrl)       
+        try: 
+            browserList[num_albums_fetch+num_thumbnail_fetch+i].open(fbMain+thumbnailUrl)
+        except Exception as ex:
+            print "browser open fullsize exception"
+            time.sleep(2)
+            continue
+
         fullsizeLink = browserList[num_albums_fetch+num_thumbnail_fetch+i].get_link("View Full Size")
         print "fullsize image link:"+fullsizeLink['href']
         img_queue.put(fullsizeLink['href'])
