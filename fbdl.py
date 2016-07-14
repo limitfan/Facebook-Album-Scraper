@@ -233,7 +233,6 @@ def accessFullsize(i, q):
         print "fullsize image link:"+fullsizeLink['href']
         img_queue.put(fullsizeLink['href'])
         #memory 3
-        print "!!!!!!!!!!!!!!!!!!!!!!!!memory 3:-----{}----{}--------".format(getShortString(fullsizeLink['href']), getShortString(thumbnailUrl))
         fullSize2thumbnail[getShortString(fullsizeLink['href'])] = getShortString(thumbnailUrl)
         q.task_done()
 
@@ -271,8 +270,6 @@ def downloadImage(i, q):
             thumbnailPage = fullSize2thumbnail[getShortString(imgUrl)]
             albumsPage = thumbnailPage2albumPage[thumbnailPage]
             currentID = albumsPage2id[albumsPage]
-
-            print "@@@@@@@@@@@@@@@@@@----{}-----{}------{}-------".format(thumbnailPage, albumsPage, currentID)
 
             createDir(currentID)
 
