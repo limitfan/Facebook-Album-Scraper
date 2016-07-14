@@ -15,7 +15,7 @@ import sys
 import re
 import os
 import json
-
+import hashlib
 
 UA= "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5 Build/MOB30M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/44.0.2403.119 Mobile Safari/537.36"
 fbMain = "https://m.facebook.com"
@@ -64,12 +64,18 @@ num_img_download = 20
 
 browserList = [RoboBrowser(user_agent=UA, timeout=defaultTimeout, tries=ntries) for i in range(num_albums_fetch+num_thumbnail_fetch+num_fullsize_fetch)]
 
+hashStr = {}
+
+
+
 #dlBrowser = RoboBrowser(user_agent=UA)
 fbUser = ""
 fbPassword = ""
 isProxyOpen = False
 
 mutex = Lock()
+strMutex = Lock()
+strcounter = 0
 counter = 0
 def getCurrentCounter():
     ret = 0
@@ -87,6 +93,23 @@ def getCurrentIndex4ID(currentID):
     ret = id2cnt[currentID]
     id2cnt[currentID] = ret + 1
     mutex.release()
+    return ret
+
+def getMD5sum(text):
+    return hashlib.md5(text).hexdigest()
+
+#optimizing memory footprint
+def getShortString(longStr):
+    tmpstr = getMD5sum(longStr)
+    if tmpstr in hashStr:
+        return hashStr[tmpstr]
+    ret = 0
+    strMutex.acquire()
+    global strcounter
+    ret = strcounter
+    strcounter = strcounter + 1
+    hashStr[tmpstr] = ret
+    strMutex.release()
     return ret
 
 def createDir(currentID):
@@ -145,7 +168,8 @@ def accessAlbumPage(i, q):
         albumsUrl = "https://m.facebook.com/{}/photos/albums/?owner_id={}".format(id2username[x], x)
         albums_queue.put(albumsUrl)
 
-        albumsPage2id[albumsUrl] = x
+        #memory 1
+        albumsPage2id[getShortString(albumsUrl)] = x
         print "username:"+currentUrl[s+1:e]
         print "albumsUrl:"+albumsUrl 
 
@@ -182,7 +206,8 @@ def accessThumbnail(i, q):
                         if "photo.php" in thumbnail['href']:
                             print "+++++++++++++++Generating Thumbnail++++++++++++++++"
                             thumbnail_queue.put(thumbnail['href'])
-                            thumbnailPage2albumPage[thumbnail['href']] = albumsUrl
+                            #memory 2
+                            thumbnailPage2albumPage[getShortString(thumbnail['href'])] = getShortString(albumsUrl)
 
                     print browserList[num_albums_fetch+i].get_link("More Photos")
                     if browserList[num_albums_fetch+i].get_link("More Photos") is None:
@@ -207,7 +232,9 @@ def accessFullsize(i, q):
         fullsizeLink = browserList[num_albums_fetch+num_thumbnail_fetch+i].get_link("View Full Size")
         print "fullsize image link:"+fullsizeLink['href']
         img_queue.put(fullsizeLink['href'])
-        fullSize2thumbnail[fullsizeLink['href']] = thumbnailUrl
+        #memory 3
+        print "!!!!!!!!!!!!!!!!!!!!!!!!memory 3:-----{}----{}--------".format(getShortString(fullsizeLink['href']), getShortString(thumbnailUrl))
+        fullSize2thumbnail[getShortString(fullsizeLink['href'])] = getShortString(thumbnailUrl)
         q.task_done()
 
 def saveLinktoFile(url, fileName):
@@ -241,13 +268,18 @@ def downloadImage(i, q):
 
             print "===============image url to be downloaded:"+imgUrl
             #print '%s: Downloading:' % i, url
-            thumbnailPage = fullSize2thumbnail[imgUrl]
+            thumbnailPage = fullSize2thumbnail[getShortString(imgUrl)]
             albumsPage = thumbnailPage2albumPage[thumbnailPage]
             currentID = albumsPage2id[albumsPage]
+
+            print "@@@@@@@@@@@@@@@@@@----{}-----{}------{}-------".format(thumbnailPage, albumsPage, currentID)
 
             createDir(currentID)
 
             saveLinktoFile(imgUrl, "./FacebookPhotos[{}_{}]/{}/{:04d}.jpg".format(start, end, currentID, getCurrentIndex4ID(currentID)))
+
+            #del fullSize2thumbnail[imgUrl]
+            #del thumbnailPage2albumPage
             q.task_done()
         except Exception:
             pass   
