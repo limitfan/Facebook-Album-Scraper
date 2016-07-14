@@ -62,7 +62,7 @@ num_thumbnail_fetch = 1
 num_fullsize_fetch = 2
 num_img_download = 20
 
-browserList = [RoboBrowser(user_agent=UA, timeout=defaultTimeout, tries=ntries) for i in range(num_albums_fetch+num_thumbnail_fetch+num_fullsize_fetch)]
+browserList = [RoboBrowser(user_agent=UA, history=False, timeout=defaultTimeout, tries=ntries) for i in range(num_albums_fetch+num_thumbnail_fetch+num_fullsize_fetch)]
 
 hashStr = {}
 
